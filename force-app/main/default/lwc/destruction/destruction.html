@@ -1,0 +1,50 @@
+<template>
+    <lightning-card>
+        <lightning-layout multiple-rows="true">
+            <lightning-layout-item size="6">
+                <div class="cardTitle slds-p-left_x-large">
+                    <h1>
+                        Destructive Changes Deployment Tool
+                        <p>
+                            Configure which classes and triggers you want to remove.
+                        </p>
+                    </h1>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6">
+                <div class="slds-p-right_xx-large " align="right">
+                    <img src={logoUrl} class="cardLogo"/>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="12" class="slds-p-horizontal_large slds-p-vertical_small">
+                <div class="action-completed" style="width: auto;" align="center">
+                    <template lwc:if={loading}>
+                        <div class="spinnerHolder">
+                            <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        
+                    </template>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="12" class="slds-p-horizontal_x-large slds-p-vertical_small">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <div class="cardTitle">
+                            <p>
+                                Depending on your organization.  Some items may take a few minutes or longer to remove.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="slds-col">
+                        <div align="right">
+                            <lightning-button label="Track New Object" title="Track New Object"  icon-name="utility:add" variant="brand-outline" class="slds-p-right_small"></lightning-button>
+                            <lightning-button label="Deploy" title="Deploy" icon-name="utility:target_mode" variant="brand" disabled={deploymentComplete}></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
+    </lightning-card>
+</template>

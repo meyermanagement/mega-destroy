@@ -1,0 +1,23 @@
+name: Static Analysis
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+jobs:
+  scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install SFDX CLI and Scanner
+        run: |
+          npm install @salesforce/cli --global
+          sfdx plugins:install @salesforce/sfdx-scanner@latest
+
+      - name: Run SFDX Scanner
+        run: |
+          sf scanner:run --target "/force-app/"
+            
