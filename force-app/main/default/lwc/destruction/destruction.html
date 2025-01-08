@@ -17,14 +17,25 @@
                 </div>
             </lightning-layout-item>
             <lightning-layout-item size="12" class="slds-p-horizontal_large slds-p-vertical_small">
-                <div class="action-completed" style="width: auto;" align="center">
+                <div class="action-completed" style="width: auto;">
                     <template lwc:if={loading}>
-                        <div class="spinnerHolder">
-                            <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                        <div align="center">
+                            <div class="spinnerHolder">
+                                <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                            </div>
                         </div>
                     </template>
                     <template lwc:else>
-                        
+                        <div class="slds-p-around_medium">
+                            <lightning-dual-listbox name="classes" size={listSize}
+                                label="Apex Triggers and Classes"
+                                source-label="Available"
+                                selected-label="Selected"
+                                field-level-help="You must include all dependent code at the same time in order to remove."
+                                options={options}
+                                value={values}
+                                onchange={handleChange}></lightning-dual-listbox>
+                        </div>
                     </template>
                 </div>
             </lightning-layout-item>
@@ -39,12 +50,74 @@
                     </div>
                     <div class="slds-col">
                         <div align="right">
-                            <lightning-button label="Track New Object" title="Track New Object"  icon-name="utility:add" variant="brand-outline" class="slds-p-right_small"></lightning-button>
-                            <lightning-button label="Deploy" title="Deploy" icon-name="utility:target_mode" variant="brand" disabled={deploymentComplete}></lightning-button>
+                            <!-- <lightning-button label="Track New Object" title="Track New Object"  icon-name="utility:add" variant="brand-outline" class="slds-p-right_small"></lightning-button> -->
+                            <lightning-button label="Destroy Selected" title="Destroy Selected" icon-name="utility:target_mode" variant="brand" onclick={openModal} disabled={disableDeployButton}></lightning-button>
                         </div>
                     </div>
                 </div>
             </lightning-layout-item>
         </lightning-layout>
     </lightning-card>
+    <template lwc:if={showDeployModal}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+             <!-- modal header start -->
+                <header class="slds-modal__header">
+                    <h2 id="modal-heading-03" class="slds-text-heading_medium slds-hyphenate">
+                        {deploymentLabel}
+                    </h2>
+                </header>
+                <div class="slds-modal__content" id="modal-content-id-3">
+                    <template lwc:if={confirmationRequired}>
+                        <div class="cardBody slds-p-around_x-large">
+                            <h2 class="slds-p-bottom_small">
+                                Please review the following triggers and classes to be removed:
+                            </h2>
+                            <lightning-datatable
+                                key-field="mdName"
+                                data={wrappers}
+                                columns={mdColumns}
+                                hide-checkbox-column
+                                >
+                            </lightning-datatable>
+                        </div>
+                    </template>
+                    <template lwc:elseif={deploying}>
+                        <div align="center">
+                            <div class="spinnerHolder">
+                                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                            </div>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <div class="cardBody slds-p-around_x-large">
+                            <h2 class="slds-p-bottom_small">
+                                Please review the following errors and try again:
+                            </h2>
+                            <lightning-datatable
+                                key-field="error"
+                                data={deployErrors}
+                                columns={errorColumns}
+                                hide-checkbox-column
+                                hide-table-header>
+                            </lightning-datatable>
+                        </div>
+                    </template>
+                </div>
+               <!-- modal footer start-->
+               <footer class="slds-modal__footer">
+                    <template lwc:if={hasErrors}>
+                        <div align="center">
+                            <lightning-button label="Close" title="Close" onclick={handleClose}></lightning-button>
+                        </div>
+                    </template>
+                    <template lwc:if={confirmationRequired}>
+                        <lightning-button label="Cancel" title="Cancel" onclick={handleClose}></lightning-button>
+                        <lightning-button variant="brand" label="Confirm" title="Confirm" onclick={deployMetadata} class="slds-m-left_x-small"></lightning-button>
+                    </template>
+               </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

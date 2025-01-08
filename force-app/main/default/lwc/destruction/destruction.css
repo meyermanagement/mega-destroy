@@ -6,20 +6,31 @@
     fill: green;
 }
 
+.bottom-border {
+    border-bottom-style: solid;
+    border-width: 1px;
+    border-color: #3a3a3a;
+    width: 70px;
+    padding-bottom: 5px;
+}
 
 .cardTitle p {
     font-size: 16px;
     color: #a7a5a5;
 }
 
-.cardBody p {
-    font-size: 14px;
-    color: #575757;
-    padding: 8px;
-}
-
 .cardTitle h1 {
     font-size: 30px;
+}
+
+.cardBody p {
+    font-size: 16px;
+    color: #3a3a3a;
+}
+
+.cardBody h2 {
+    font-size: 20px;
+    color: #383838;
 }
 
 .cardLogo h1 {

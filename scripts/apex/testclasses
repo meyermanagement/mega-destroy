@@ -1,0 +1,18 @@
+trigger test on Account (before insert) {
+	testhandler.handler();
+}
+
+public class testhandler {
+
+    public static void handler(){
+        System.debug('handler');
+    }
+}
+
+@isTest
+public class testhandler_test {
+
+    @isTest public static void testInit(){
+        testhandler.handler();
+    }
+}

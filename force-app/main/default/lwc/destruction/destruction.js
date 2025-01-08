@@ -1,4 +1,4 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement, wire, track } from 'lwc';
 import { refreshApex } from "@salesforce/apex";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -17,6 +17,38 @@ export default class Tracking extends LightningElement {
     asyncId;
     intervalId;
     logoUrl = MEGA_HISTORY_LOGO;
+    options = [];
+    values = [];
+    deploying = false;
+    showDeployModal = false;
+    wrappers = [];
+    deployErrors = [];
+    deploymentLabel = 'Confirm Destruction';
+
+    mdColumns = [
+        { label: 'Name', fieldName: 'mdName' },
+        { label: 'Type', fieldName: 'mdType' }
+    ];
+
+    errorColumns = [
+        { label: 'Error', fieldName: 'error' }
+    ];
+
+    get disableDeployButton() {
+        return this.values.length == 0;
+    }
+
+    get confirmationRequired() {
+        return this.deploying == false && !this.hasErrors;
+    }
+
+    get hasErrors() {
+        return this.deployErrors.length > 0;
+    }
+
+    get listSize() {
+        return this.options.length > 10 ? 10 : this.options.length;
+    }
     
     connectedCallback(){
         if(this.apexData == undefined) this.loading = true;
@@ -28,6 +60,16 @@ export default class Tracking extends LightningElement {
         this._wiredData = result;
         if(result.data){
             this.apexData = result.data;
+            this.options = [];
+            this.values = [];
+            const items = [];
+            for (let item of this.apexData) {
+                items.push({
+                    label: item.mdName+'('+item.mdType+')',
+                    value: item.mdName,
+                });
+            }
+            this.options.push(...items);
         } else if (result.error) {
             console.log(result.error.body.message);
             this.dispatchEvent(
@@ -41,17 +83,29 @@ export default class Tracking extends LightningElement {
         this.loading = false;
     }
 
+    handleChange(event) {
+        this.values = event.detail.value;
+    }
+
+    openModal(){
+        let wrappers = [];
+        for(let v of this.values){
+            for(let d of this.apexData){
+                if(v == d.mdName) wrappers.push(d);
+            }
+        }
+        this.wrappers = wrappers;
+        this.showDeployModal = true;
+    }
     
     deployMetadata(){
-        this.loading = true;
-        let wrappers = [];
-        generateFiles({ wrappers : JSON.stringify(wrappers) })
+        this.deploying = true;
+        this.deploymentLabel = 'Destruction in progress...';
+        generateFiles({ wrappers : JSON.stringify(this.wrappers) })
         .then((data) => {
             var fileMap = data;
-            var testName = data['testName'];
-            delete fileMap['testName'];
             let zip = this.generateZIP(fileMap);
-            this.deployFiles(zip, testName);
+            this.deployFiles(zip);
         })
         .catch(error => {
             console.error(error);
@@ -62,7 +116,8 @@ export default class Tracking extends LightningElement {
                     variant: "error",
                 }),
             );
-            this.loading = false;
+            this.deploying = false;
+            this.showDeployModal = false;
         }); 
     }
 
@@ -74,8 +129,8 @@ export default class Tracking extends LightningElement {
         return zip.generate();
     }
 
-    async deployFiles(zip, testName){
-        await deployPackage({zipFile : zip, testName : testName})
+    async deployFiles(zip){
+        await deployPackage({zipFile : zip})
         .then((data) => {
             this.asyncId = data;
             this.interval = setInterval(() => {
@@ -91,7 +146,8 @@ export default class Tracking extends LightningElement {
                     variant: "error",
                 }),
             );
-            this.loading = false;
+            this.deploying = false;
+            this.showDeployModal = false;
         }); 
     }
 
@@ -99,26 +155,44 @@ export default class Tracking extends LightningElement {
         if(this.asyncId){
             checkDeploymentStatus({asyncId: this.asyncId})
             .then((data) => {
-                if(data){
+                if(data.length > 0){
                     clearInterval(this.interval);
-                    this.handleSuccessfulDeployment();
+                    if(data.includes('Success')){
+                        this.handleSuccessfulDeployment();
+                    } else {
+                        let errors = [];
+                        for(let err of data){
+                            errors.push({error:err});
+                        }
+                        this.deployErrors = errors;
+                        this.deploying = false;
+                        this.deploymentLabel = 'Destruction Failed';
+                    }
                 }
             })
             .catch(error => {
                 console.error(error);
                 this.dispatchEvent(
                     new ShowToastEvent({
-                        title: "An error has occurred. Please contact the system administrator for further assistance.",
+                        title: "Deployment Error. Please review and try again.",
                         message: error.body.message,
                         variant: "error",
                     }),
                 );
                 clearInterval(this.interval);
-                this.loading = false;
+                this.deploying = false;
             }); 
         } else {
-            this.loading = false;
+            this.deploying = false;
         }
+    }
+
+    handleClose() {
+        this.deploying = false;
+        this.showDeployModal = false;
+        refreshApex(this._wiredData);
+        this.deployErrors = [];
+        this.deploymentLabel = 'Confirm Destruction';
     }
 
     handleSuccessfulDeployment(){
@@ -127,11 +201,12 @@ export default class Tracking extends LightningElement {
         this.dispatchEvent(
             new ShowToastEvent({
                 title: "Success!",
-                message: `You have successfully Removed the selected Apex from your organization!`,
+                message: `You have successfully removed the selected apex code from your organization!`,
                 variant: "success",
             }),
         );
-        this.loading = false;
+        this.deploying = false;
+        this.showDeployModal = false;
     }
 
 }

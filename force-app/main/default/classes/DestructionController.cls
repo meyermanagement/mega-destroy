@@ -6,18 +6,26 @@
 public with sharing class DestructionController {
 
     /**
-     * @description  Custom Exception for this class
-     */
-    public class DestructionException extends Exception {}
-
-    /**
      * @description     generate the selected files
      * @return map of file name to metadata
      */
-    @AuraEnabled
-    public static void getApex(){
+    @AuraEnabled(cacheable=true)
+    public static List<MetadataWrapper> getApex(){
         try {
-            
+            List<MetadataWrapper> wrappers = new List<MetadataWrapper>();
+            for(ApexTrigger at : [SELECT Id, NamespacePrefix, Name, Status FROM ApexTrigger WHERE NamespacePrefix = null WITH USER_MODE ORDER BY Name ]){
+                MetadataWrapper mw = new MetadataWrapper();
+                mw.mdName = at.Name;
+                mw.mdType = 'ApexTrigger';
+                wrappers.add(mw);
+            }
+            for(ApexClass at : [SELECT Id, NamespacePrefix, Name FROM ApexClass WHERE NamespacePrefix = null WITH USER_MODE ORDER BY Name ]){
+                MetadataWrapper mw = new MetadataWrapper();
+                mw.mdName = at.Name;
+                mw.mdType = 'ApexClass';
+                wrappers.add(mw);
+            }
+            return wrappers;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -33,13 +41,8 @@ public with sharing class DestructionController {
         try {
             Map<String, String> metaDataMap = new Map<String, String>();
             List<MetadataWrapper> wrapperList = (List<MetadataWrapper>)JSON.deserialize(wrappers, List<MetadataWrapper>.class);
-            for(MetadataWrapper wrapper : wrapperList){
-                String className = wrapper.mdName.removeEnd('Trigger');
-                className = className + '_Test';
-                metaDataMap.put('destructiveChanges.xml', TriggerFiles.getDestructiveChangesXml(wrapper));
-                metaDataMap.put('package.xml', TriggerFiles.getPackageXml(wrapper, false));
-                metaDataMap.put('testName', className+'');
-            }
+            metaDataMap.put('destructiveChanges.xml', TriggerFiles.getDestructiveChangesXml(wrapperList));
+            metaDataMap.put('package.xml', TriggerFiles.getPackageXml());
             return metaDataMap;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -49,16 +52,15 @@ public with sharing class DestructionController {
     /**
      * @description     deploy trigger using zip file
      * @param zipFile
-     * @param testName
      * @return deployment id
      */
     @AuraEnabled
-    public static String deployPackage(String zipFile, String testName){
+    public static String deployPackage(String zipFile){
         try {
             MetadataService.MetadataPort service = createService();
             MetadataService.DeployOptions deployOptions = new MetadataService.DeployOptions();
-            deployOptions.testLevel = 'RunSpecifiedTests';
-            deployOptions.runTests = new List<String>{ testName };
+            deployOptions.testLevel = 'RunLocalTests';
+            //deployOptions.runTests = new List<String>();
             deployOptions.allowMissingFiles = false;
             deployOptions.autoUpdatePackage = false;
             deployOptions.checkOnly = false;
@@ -80,14 +82,17 @@ public with sharing class DestructionController {
      * @return isComplete
      */
     @AuraEnabled
-    public static Boolean checkAsyncRequest(String asyncId){
+    public static List<String> checkAsyncRequest(String asyncId){
         try {
+            List<String> resultMessages = new List<String>();
             MetadataService.MetadataPort service = createService();
             MetadataService.DeployResult deployResult = Test.isRunningTest() ? new MetadataService.DeployResult() : service.checkDeployStatus(asyncId, true);
-            if (deployResult.details != null && deployResult.details.componentFailures != null){
+            if(deployResult.success != null && deployResult.success){
+                resultMessages.add('Success');
+            } else if (deployResult.details != null && deployResult.details.componentFailures != null){
                 for (MetadataService.DeployMessage deployMessage : deployResult.details.componentFailures){
                     if (deployMessage.problem != null){
-                        throw new DestructionException(deployMessage.fileName +
+                        resultMessages.add(deployMessage.fileName +
                         ' (Line: ' +
                         deployMessage.lineNumber +
                         ': Column:' +
@@ -96,39 +101,35 @@ public with sharing class DestructionController {
                         deployMessage.problem);
                     }
                 }
+            } else if(deployResult.details != null && deployResult.details.runTestResult.numFailures > 0) {
                 MetadataService.RunTestsResult runTestResult = deployResult.details.runTestResult;
                 if (runTestResult.numFailures > 0){
                     for (MetadataService.RunTestFailure testFailure : runTestResult.failures){
-                        throw new DestructionException(
-                            testFailure.name +
-                            '.' +
-                            testFailure.methodName +
-                            ' ' +
-                            testFailure.message +
-                            ' ' +
-                            testFailure.stackTrace
-                        );
+                        resultMessages.add(testFailure.name +
+                        '.' +
+                        testFailure.methodName +
+                        ' ' +
+                        testFailure.message +
+                        ' ' +
+                        testFailure.stackTrace);
                     }
                 }
                 if (runTestResult.codeCoverageWarnings != null){
                     for (MetadataService.CodeCoverageWarning codeCoverageWarning : runTestResult.codeCoverageWarnings){
-                        throw new DestructionException((codeCoverageWarning.namespace != null
-                            ? codeCoverageWarning.namespace + '.'
-                            : '') +
-                            codeCoverageWarning.name +
-                            ':' +
-                            codeCoverageWarning.message
+                        resultMessages.add((codeCoverageWarning.namespace != null
+                        ? codeCoverageWarning.namespace + '.'
+                        : '') +
+                        codeCoverageWarning.name +
+                        ':' +
+                        codeCoverageWarning.message
                         );
                     }
                 }
             }
-            return deployResult.done;
+            return resultMessages;
         } catch (Exception e) {
-            if(!e.getMessage().contains('Apex type not found')) {
-                throw new AuraHandledException(e.getMessage());
-            } else {
-                return true;
-            }
+            System.debug(e.getMessage());
+            throw new AuraHandledException(e.getMessage());
         }
     }
 

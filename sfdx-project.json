@@ -1,11 +1,19 @@
 {
   "packageDirectories": [
     {
-      "path": "force-app"
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "package": "MEGA Destroy",
+      "versionDescription": ""
     }
   ],
   "name": "mega-destroy",
+  "namespace": "megadestroy",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "61.0"
-  
+  "sourceApiVersion": "61.0",
+  "packageAliases": {
+    "MEGA Destroy": "0Hobn0000002CjRCAU",
+    "MEGA Destroy@0.1.0-1": "04tbn000000oCM9AAM"
+  }
 }
