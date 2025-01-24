@@ -2,7 +2,8 @@
   "packageDirectories": [
     {
       "versionName": "ver 0.1",
-      "versionNumber": "0.1.0.NEXT",
+      "versionNumber": "0.2.0.NEXT",
+      "ancestorVersion": "HIGHEST",
       "path": "force-app",
       "package": "MEGA Destroy",
       "versionDescription": ""
@@ -14,6 +15,7 @@
   "sourceApiVersion": "61.0",
   "packageAliases": {
     "MEGA Destroy": "0Hobn0000002CjRCAU",
-    "MEGA Destroy@0.1.0-1": "04tbn000000oCM9AAM"
+    "MEGA Destroy@0.1.0-1": "04tbn000000oCM9AAM",
+    "MEGA Destroy@0.2.0-1": "04tbn000000oEe5AAE"
   }
 }

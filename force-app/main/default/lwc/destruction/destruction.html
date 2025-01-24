@@ -25,6 +25,16 @@
                             </div>
                         </div>
                     </template>
+                    <template lwc:elseif={hasApex}>
+                        <div align="center" class="cardBody slds-p-vertical_large">
+                            <p class="slds-p-bottom_medium">
+                                No compatible apex code present.  
+                            </p>
+                            <p>
+                                Only apex code which is not related to managed packages are available to remove.
+                            </p>
+                        </div>
+                    </template>
                     <template lwc:else>
                         <div class="slds-p-around_medium">
                             <lightning-dual-listbox name="classes" size={listSize}

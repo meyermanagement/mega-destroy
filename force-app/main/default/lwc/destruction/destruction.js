@@ -49,6 +49,10 @@ export default class Tracking extends LightningElement {
     get listSize() {
         return this.options.length > 10 ? 10 : this.options.length;
     }
+
+    get hasApex() {
+        return this.options.length == 0;
+    }
     
     connectedCallback(){
         if(this.apexData == undefined) this.loading = true;
